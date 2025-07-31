@@ -1,0 +1,14 @@
+{
+  "lib/axelar-gmp-sdk-solidity": {
+    "rev": "3f6ae1a1d22590e1c9b6af66781adc72148ee447"
+  },
+  "lib/filecoin-solidity": {
+    "rev": "2f032e4a9d8ee36c8666c1f69e145bab1a467430"
+  },
+  "lib/openzeppelin-contracts": {
+    "rev": "c80b675b8db1d951b8b3734df59530d0d3be064b"
+  },
+  "lib/forge-std": {
+    "rev": "5475f852e3f530d7e25dfb4596aa1f9baa8ffdfc"
+  }
+}
