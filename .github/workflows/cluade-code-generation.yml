@@ -43,11 +43,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Foundry
+        uses: foundry-rs/foundry-toolchain@v1
         with:
-          node-version: '18'
-          cache: 'npm'
+          version: nightly
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -56,7 +60,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
+          forge install
           pip install boto3 requests botocore
 
       - name: Extract task description
@@ -81,15 +85,18 @@ jobs:
 
       - name: Analyze codebase structure
         run: |
-          find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) \
-            -not -path "./node_modules/*" \
+          find . -type f \( -name "*.sol" -o -name "*.go" -o -name "*.toml" \) \
+            -not -path "./lib/*" \
             -not -path "./.git/*" > codebase_files.txt
           
           echo "Project structure:" > project_context.txt
-          tree -I 'node_modules|.git' -L 3 >> project_context.txt || ls -la >> project_context.txt
+          tree -I 'lib|.git' -L 3 >> project_context.txt || ls -la >> project_context.txt
           
-          echo "Package.json content:" >> project_context.txt
-          cat package.json >> project_context.txt
+          echo "Foundry.toml content:" >> project_context.txt
+          cat foundry.toml >> project_context.txt 2>/dev/null || echo "No foundry.toml found"
+          
+          echo "README.md content:" >> project_context.txt
+          head -50 README.md >> project_context.txt 2>/dev/null || echo "No README.md found"
 
       - name: Generate code with Claude
         env:
@@ -139,7 +146,7 @@ jobs:
                   context += read_file_safely('project_context.txt')
               
               # Read key configuration files
-              key_files = ['package.json', 'tsconfig.json', 'vite.config.ts', 'capacitor.config.ts']
+              key_files = ['foundry.toml', 'remappings.txt', '.gitmodules']
               for file in key_files:
                   if os.path.exists(file):
                       context += f"\n\n=== {file} ===\n"
@@ -153,7 +160,7 @@ jobs:
                   for file in files:
                       if os.path.exists(file):
                           context += f"\n\n=== {file} ===\n"
-                          context += read_file_safely(file, 30)
+                          context += read_file_safely(file, 50)
               
               return context
           
@@ -161,7 +168,7 @@ jobs:
               client = get_bedrock_client()
               
               prompt = f"""
-          You are an expert software developer working on an Ionic React TypeScript application for government billing/invoicing.
+          You are an expert blockchain developer working on a Foundry-based Solidity smart contract project focused on Filecoin onramp functionality for writing data to the Filecoin network.
           
           TASK: {task_description}
           
@@ -176,13 +183,15 @@ jobs:
           4. **INSTRUCTIONS**: Any additional setup or configuration steps needed
           
           Follow these guidelines:
-          - Use TypeScript and React hooks
-          - Follow Ionic React patterns and components
-          - Maintain consistency with existing code style
-          - Include proper error handling
-          - Add appropriate TypeScript types
-          - Use existing utilities and patterns from the codebase
-          - Ensure mobile-first responsive design
+          - Use Solidity best practices and follow the existing code style
+          - Leverage OpenZeppelin contracts where appropriate
+          - Include proper error handling and validation
+          - Add comprehensive NatSpec documentation
+          - Consider gas optimization
+          - Use existing imports and dependencies from the lib/ directory
+          - Follow the project's existing patterns for Filecoin integration
+          - Include relevant tests if creating new contracts
+          - Consider security implications and follow secure coding practices
           
           Format your response clearly with sections for each file change.
           """
